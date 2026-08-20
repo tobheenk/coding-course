@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Unit 2 — Block-Coding Review (Scratch) | Grade 7 Coding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="unit-layout">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-head">
+        <a href="index.html" class="back">&larr; Course Overview</a>
+        <h2 id="sidebar-unit-title">Unit</h2>
+        <div class="unit-sub" id="sidebar-unit-sub"></div>
+      </div>
+      <div class="sidebar-progress">
+        <div class="progress-track"><div class="progress-fill" id="sidebar-progress-fill" style="width:0%"></div></div>
+        <div class="progress-label" id="sidebar-progress-label"></div>
+      </div>
+      <ul class="part-list" id="part-list"></ul>
+    </aside>
+
+    <main class="main-area">
+      <div class="content-topbar">
+        <button class="btn btn-ghost" id="menu-toggle" style="display:none;">☰ Parts</button>
+        <div class="crumb" id="crumb"></div>
+        <div class="who">
+          <span id="who-name">—</span>
+          <button class="linklike" id="logout-btn">Sign out</button>
+        </div>
+      </div>
+      <div class="content" id="content"></div>
+    </main>
+  </div>
+
+  <script src="js/students-config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/progress.js"></script>
+  <script src="js/course-config.js"></script>
+  <script src="js/appscript-config.js"></script>
+  <script src="js/pdf-export.js"></script>
+  <script src="data/unit2-data.js"></script>
+  <script src="js/unit-app.js"></script>
+  <script>
+    // Show the mobile "Parts" menu toggle only on small screens
+    if (window.innerWidth <= 860) document.getElementById("menu-toggle").style.display = "inline-flex";
+  </script>
+</body>
+</html>

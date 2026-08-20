@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Grade 7 Coding — Course Overview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><div class="brand-mark">G7</div> Grade 7 Coding</div>
+    <div class="who">
+      <a href="login.html" class="btn btn-primary" style="text-decoration:none;">Log In</a>
+    </div>
+  </div>
+
+  <div class="hero">
+    <div class="eyebrow">SELF-PACED COURSE · PRIVATE TUTORING</div>
+    <h1>Grade 7 Coding, taught one student at a time.</h1>
+    <p class="lede">A 5-unit, self-paced computational thinking and coding course — built for 1-on-1 learning. Work through explanations, videos, code examples, and hands-on worksheets at your own pace, with your teacher reviewing your progress and work along the way.</p>
+    <div style="margin-top:28px;">
+      <a href="login.html" class="btn btn-primary" style="text-decoration:none; font-size:15px; padding:13px 26px;">Log In to Start Learning &rarr;</a>
+    </div>
+  </div>
+
+  <div class="unit-grid" id="unit-grid">
+    <div class="unit-card card">
+      <div class="u-num">Unit 1</div>
+      <h3>Computational Thinking</h3>
+      <p>Decomposition (as a list and as a tree), pattern recognition, abstraction, and algorithms.</p>
+      <div class="meta">9 parts</div>
+    </div>
+    <div class="unit-card card">
+      <div class="u-num">Unit 2</div>
+      <h3>Block-Coding Review (Scratch)</h3>
+      <p>A fast, thorough refresher of everything learned in Scratch since Grade 3.</p>
+      <div class="meta">2 parts</div>
+    </div>
+    <div class="unit-card card">
+      <div class="u-num">Unit 3</div>
+      <h3>Advanced Loops, Variables & Conditionals</h3>
+      <p>Nested logic, scoring systems, and building a complete mini-game.</p>
+      <div class="meta">12 parts</div>
+    </div>
+    <div class="unit-card card">
+      <div class="u-num">Unit 4</div>
+      <h3>Creative Coding Project</h3>
+      <p>Design, build, test, and present an original Scratch project.</p>
+      <div class="meta">8 parts</div>
+    </div>
+    <div class="unit-card card">
+      <div class="u-num">Unit 5</div>
+      <h3>Introduction to Text-Based Coding</h3>
+      <p>Your first real steps into Python — print(), variables, and input().</p>
+      <div class="meta">6 parts</div>
+    </div>
+  </div>
+
+  <div style="max-width:1080px; margin: 0 auto 80px; padding: 0 32px;">
+    <div class="card" style="padding:28px 30px;">
+      <div class="eyebrow" style="color:#0F5C4A;">HOW IT WORKS</div>
+      <h3 style="margin:10px 0 16px; font-size:20px;">Learn at your own pace, one topic at a time</h3>
+      <ul style="margin:0; padding-left:20px; font-size:14.5px; color:#2B303A; line-height:1.9;">
+        <li>Each part includes a short explanation, a video, code examples, and a hands-on worksheet.</li>
+        <li>Every worksheet includes a rubric so you always know what's expected.</li>
+        <li>Topics unlock one at a time — finish one before moving to the next, so nothing gets skipped.</li>
+        <li>Your teacher reviews your submitted work and progress regularly, not just at the end.</li>
+      </ul>
+    </div>
+  </div>
+
+  <script>
+    // If already logged in, skip the landing page.
+    (function () {
+      try {
+        const s = JSON.parse(sessionStorage.getItem("g7c_session") || "null");
+        if (s && s.type === "student") window.location.href = "student-dashboard.html";
+        if (s && s.type === "teacher") window.location.href = "teacher-dashboard.html";
+      } catch (e) {}
+    })();
+  </script>
+</body>
+</html>

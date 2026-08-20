@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Teacher Dashboard — Grade 7 Coding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body data-unit="1">
+  <div class="topbar">
+    <div class="brand"><div class="brand-mark">G7</div> Grade 7 Coding — Teacher Dashboard</div>
+    <div class="who">
+      <span id="who-name">Teacher</span>
+      <button class="linklike" id="logout-btn">Sign out</button>
+    </div>
+  </div>
+
+  <div class="dash-wrap">
+    <div class="dash-head">
+      <div>
+        <div class="eyebrow">TEACHER VIEW</div>
+        <h1>Student Progress</h1>
+      </div>
+      <button class="btn btn-ghost" id="refresh-btn">↻ Refresh from Google Sheet</button>
+    </div>
+
+    <div class="config-note" id="config-note"></div>
+
+    <div class="student-tabs" id="student-tabs"></div>
+    <div id="dash-body"></div>
+  </div>
+
+  <script src="js/students-config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/appscript-config.js"></script>
+  <script src="js/course-config.js"></script>
+  <script>
+    const session = auth_requireTeacher();
+    let SUBMISSIONS = []; // rows from the Apps Script log: {username, studentName, unit, wsId, score, maxScore, filename, timestamp}
+    let PART_LOGS = [];   // rows from the part-completion log: {username, studentName, unit, part, complete, timestamp}
+    let activeStudent = null;
+
+    if (session) {
+      document.getElementById("logout-btn").addEventListener("click", auth_logout);
+
+      const configured = typeof APPSCRIPT_URL !== "undefined" && APPSCRIPT_URL && APPSCRIPT_URL.indexOf("PASTE_YOUR") === -1;
+      const noteEl = document.getElementById("config-note");
+      if (!configured) {
+        noteEl.innerHTML = `<b>Setup needed:</b> the Teacher Dashboard reads student progress from a Google Sheet via Apps Script, which isn't configured yet. Follow <code>/appscript/SETUP_INSTRUCTIONS.md</code>, then paste your Web App URL into <code>js/appscript-config.js</code>. Until then, this page has nothing to show.`;
+      } else {
+        noteEl.innerHTML = `Data below is pulled from your Google Sheet log. Click "Refresh from Google Sheet" any time to check for new submissions. PDF links open directly in your Google Drive.`;
+        loadData();
+      }
+
+      document.getElementById("refresh-btn").addEventListener("click", loadData);
+    }
+
+    function loadData() {
+      if (typeof APPSCRIPT_URL === "undefined" || APPSCRIPT_URL.indexOf("PASTE_YOUR") !== -1) return;
+      document.getElementById("dash-body").innerHTML = `<p style="color:#545B68;font-size:14px;">Loading…</p>`;
+      fetch(APPSCRIPT_URL + "?action=get_log")
+        .then((r) => r.json())
+        .then((data) => {
+          SUBMISSIONS = data.submissions || [];
+          PART_LOGS = data.partLogs || [];
+          renderStudentTabs();
+        })
+        .catch((err) => {
+          document.getElementById("dash-body").innerHTML = `<p style="color:#A31E1E;font-size:14px;">Could not load data. Check that your Apps Script Web App is deployed and the URL in js/appscript-config.js is correct.<br>(${err})</p>`;
+        });
+    }
+
+    function renderStudentTabs() {
+      const usernames = Array.from(new Set([...SUBMISSIONS.map(s => s.username), ...PART_LOGS.map(s => s.username)]));
+      const tabsEl = document.getElementById("student-tabs");
+      tabsEl.innerHTML = "";
+      if (usernames.length === 0) {
+        document.getElementById("dash-body").innerHTML = `<p style="color:#545B68;font-size:14px;">No submissions yet. Once a student completes worksheets, they'll appear here.</p>`;
+        return;
+      }
+      usernames.forEach((u) => {
+        const displayName = (SUBMISSIONS.find(s => s.username === u) || PART_LOGS.find(s => s.username === u) || {}).studentName || u;
+        const btn = document.createElement("button");
+        btn.textContent = displayName;
+        btn.className = activeStudent === u ? "active" : "";
+        btn.addEventListener("click", () => { activeStudent = u; renderStudentTabs(); renderDashBody(); });
+        tabsEl.appendChild(btn);
+      });
+      if (!activeStudent) activeStudent = usernames[0];
+      renderDashBody();
+    }
+
+    function renderDashBody() {
+      const body = document.getElementById("dash-body");
+      body.innerHTML = "";
+      UNITS_META.forEach((u) => {
+        const unitSubs = SUBMISSIONS.filter((s) => s.username === activeStudent && String(s.unit) === String(u.num));
+        const unitParts = PART_LOGS.filter((s) => s.username === activeStudent && String(s.unit) === String(u.num) && s.complete);
+        const completedCount = new Set(unitParts.map(p => p.part)).size;
+
+        const block = document.createElement("div");
+        block.className = "dash-unit-block card";
+        block.style.padding = "18px 20px";
+        block.innerHTML = `<div class="dash-unit-head">
+            <h3>Unit ${u.num}: ${u.title}</h3>
+            <span class="badge ${completedCount >= u.totalParts ? "done" : "pending"}">${completedCount} / ${u.totalParts} parts</span>
+          </div>`;
+
+        const table = document.createElement("table");
+        table.className = "dash-table";
+        table.innerHTML = `<thead><tr><th>Worksheet</th><th>Score</th><th>Submitted</th><th>PDF</th></tr></thead>`;
+        const tbody = document.createElement("tbody");
+        if (unitSubs.length === 0) {
+          tbody.innerHTML = `<tr><td colspan="4" style="color:#9AA0A6;">No worksheets submitted yet for this unit.</td></tr>`;
+        } else {
+          unitSubs.sort((a, b) => a.wsId.localeCompare(b.wsId)).forEach((s) => {
+            tbody.innerHTML += `<tr>
+              <td>${s.wsId}</td>
+              <td>${s.score} / ${s.maxScore}</td>
+              <td>${new Date(s.timestamp).toLocaleString()}</td>
+              <td>${s.driveUrl ? `<a href="${s.driveUrl}" target="_blank" rel="noopener">Open PDF ↗</a>` : "—"}</td>
+            </tr>`;
+          });
+        }
+        table.appendChild(tbody);
+        block.appendChild(table);
+        body.appendChild(block);
+      });
+    }
+  </script>
+</body>
+</html>

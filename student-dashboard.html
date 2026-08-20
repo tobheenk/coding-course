@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Dashboard — Grade 7 Coding</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div class="topbar">
+    <div class="brand"><div class="brand-mark">G7</div> Grade 7 Coding</div>
+    <div class="who">
+      <span id="who-name">—</span>
+      <button class="linklike" id="logout-btn">Sign out</button>
+    </div>
+  </div>
+
+  <div class="hero" style="padding-bottom:0;">
+    <div class="eyebrow">MY DASHBOARD</div>
+    <h1>Welcome back<span id="hero-name-suffix"></span>.</h1>
+    <p class="lede">Here's how far you've come, and where to pick up next.</p>
+  </div>
+
+  <div class="overall-progress" style="margin-top:28px;">
+    <div class="progress-track"><div class="progress-fill" id="overall-fill" style="width:0%"></div></div>
+    <div class="progress-label" id="overall-label">Loading progress…</div>
+  </div>
+
+  <div style="max-width:1080px; margin: 28px auto 0; padding: 0 32px;">
+    <div class="continue-cta" id="continue-cta"></div>
+  </div>
+
+  <div style="max-width:1080px; margin: 0 auto; padding: 0 32px;">
+    <div class="eyebrow" style="margin-bottom:14px;">COURSE UNITS</div>
+  </div>
+  <div class="unit-grid" id="unit-grid" style="margin-top:0;"></div>
+
+  <div style="max-width:1080px; margin: 10px auto 80px; padding: 0 32px;">
+    <div class="card" style="padding:26px 28px;">
+      <div class="eyebrow" style="margin-bottom:6px;">MY GRADES</div>
+      <h3 style="margin:0 0 4px; font-size:20px;">Worksheets & Assessments</h3>
+      <p style="margin:0 0 18px; font-size:13.5px; color:#545B68;">Self-assessed scores from every worksheet you've submitted so far. Your teacher reviews these with you during your check-ins.</p>
+      <div id="grades-body"></div>
+    </div>
+  </div>
+
+  <script src="js/students-config.js"></script>
+  <script src="js/auth.js"></script>
+  <script src="js/progress.js"></script>
+  <script src="js/course-config.js"></script>
+  <script>
+    const session = auth_requireStudent();
+    if (session) {
+      document.getElementById("who-name").textContent = session.displayName;
+      document.getElementById("hero-name-suffix").textContent = ", " + session.displayName.split(" ")[0];
+      document.getElementById("logout-btn").addEventListener("click", auth_logout);
+
+      const overall = progress_getOverallStats(session.username, UNITS_META);
+      document.getElementById("overall-fill").style.width = overall.pct + "%";
+      document.getElementById("overall-label").textContent = `Overall course progress: ${overall.completed} / ${overall.total} parts complete (${overall.pct}%)`;
+
+      const next = progress_getNextIncompletePartGlobal(session.username, UNITS_META);
+      const ctaEl = document.getElementById("continue-cta");
+      if (!next) {
+        ctaEl.innerHTML = `<div class="txt"><b>🎉 You've completed the whole course!</b><span>All units finished. Talk to your teacher about what's next.</span></div>`;
+      } else {
+        const u = UNITS_META.find((x) => x.num === next.unitNum);
+        const alreadyStarted = next.partNum > 1 || progress_getUnitStats(session.username, u.num, u.totalParts).completed > 0;
+        ctaEl.innerHTML = `
+          <div class="txt"><b>${alreadyStarted ? "Continue where you left off" : "Ready to start?"}</b><span>Unit ${u.num}: ${u.title} — Part ${next.partNum} of ${u.totalParts}</span></div>
+          <a href="${next.file}#part=${next.partNum}" class="btn btn-accent">${alreadyStarted ? "Continue Learning" : "Start Learning"} &rarr;</a>
+        `;
+      }
+
+      const grid = document.getElementById("unit-grid");
+      UNITS_META.forEach((u) => {
+        const stats = progress_getUnitStats(session.username, u.num, u.totalParts);
+        const unlocked = progress_isUnitUnlocked(session.username, u.num, UNITS_META);
+        const complete = progress_isUnitComplete(session.username, u.num, u.totalParts);
+        const card = document.createElement(unlocked ? "a" : "div");
+        if (unlocked) card.href = u.file;
+        card.className = "unit-card card" + (unlocked ? "" : " locked") + (complete ? " done-badge" : "");
+        card.style.setProperty("--u-accent", u.accent);
+        card.innerHTML = `
+          ${!unlocked ? '<div class="lock-badge">🔒</div>' : ""}
+          <div class="u-num">Unit ${u.num}</div>
+          <h3>${u.title}</h3>
+          <p>${u.tagline}</p>
+          <div class="bar-track"><div class="bar-fill" style="width:${stats.pct}%"></div></div>
+          <div class="meta">${unlocked ? `${stats.completed} / ${stats.total} parts &middot; ${stats.pct}%` : "Locked — finish the previous unit first"}</div>
+        `;
+        grid.appendChild(card);
+      });
+
+      renderGrades();
+    }
+
+    function renderGrades() {
+      const body = document.getElementById("grades-body");
+      const data = progress_load(session.username);
+      let rows = [];
+      UNITS_META.forEach((u) => {
+        const uData = data["unit" + u.num];
+        if (!uData || !uData.worksheets) return;
+        Object.keys(uData.worksheets).forEach((wsId) => {
+          const ws = uData.worksheets[wsId];
+          if (ws.score === undefined || ws.submittedAt === undefined) return;
+          rows.push({ unit: u.num, unitTitle: u.title, wsId, score: ws.score, maxScore: ws.maxScore, submittedAt: ws.submittedAt });
+        });
+      });
+
+      if (rows.length === 0) {
+        body.innerHTML = `<p style="color:#9AA0A6; font-size:13.5px;">No worksheets submitted yet — your grades will appear here once you start submitting.</p>`;
+        return;
+      }
+
+      rows.sort((a, b) => a.wsId.localeCompare(b.wsId));
+
+      let html = `<table class="grades-table"><thead><tr><th>Unit</th><th>Worksheet</th><th>Type</th><th>Score</th><th>Submitted</th></tr></thead><tbody>`;
+      rows.forEach((r) => {
+        const isAssessment = ASSESSMENT_WS_IDS.includes(r.wsId);
+        const pct = r.maxScore ? Math.round((r.score / r.maxScore) * 100) : 0;
+        html += `<tr>
+          <td>Unit ${r.unit}</td>
+          <td>${r.wsId}</td>
+          <td><span class="type-badge ${isAssessment ? "assessment" : "worksheet"}">${isAssessment ? "Assessment" : "Worksheet"}</span></td>
+          <td class="score-cell">${r.score} / ${r.maxScore} <span style="color:#9AA0A6; font-weight:400;">(${pct}%)</span></td>
+          <td>${new Date(r.submittedAt).toLocaleDateString()}</td>
+        </tr>`;
+      });
+      html += `</tbody></table>`;
+      body.innerHTML = html;
+    }
+  </script>
+</body>
+</html>
